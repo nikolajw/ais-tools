@@ -130,6 +130,15 @@ $GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
 ```
 This is the GPS Recommended Minimum format, compatible with GPS receivers.
 
+## Releases
+
+Pre-built binaries are available for:
+- **Linux** (x64)
+- **macOS** (Intel x64 and Apple Silicon ARM64)
+- **Windows** (x64)
+
+Download from [GitHub Releases](https://github.com/nikolajw/ais-replay/releases).
+
 ## Development
 
 ### Project Structure

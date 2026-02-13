@@ -28,8 +28,11 @@ jobs:
       - name: Publish for Linux
         run: dotnet publish --configuration Release --runtime linux-x64 --self-contained --output ./publish/linux-x64
 
-      - name: Publish for macOS
+      - name: Publish for macOS (Intel)
         run: dotnet publish --configuration Release --runtime osx-x64 --self-contained --output ./publish/macos-x64
+
+      - name: Publish for macOS (Apple Silicon)
+        run: dotnet publish --configuration Release --runtime osx-arm64 --self-contained --output ./publish/macos-arm64
 
       - name: Publish for Windows
         run: dotnet publish --configuration Release --runtime win-x64 --self-contained --output ./publish/windows-x64
@@ -39,6 +42,7 @@ jobs:
           cd publish
           tar -czf aisreplay-linux-x64.tar.gz linux-x64/
           tar -czf aisreplay-macos-x64.tar.gz macos-x64/
+          tar -czf aisreplay-macos-arm64.tar.gz macos-arm64/
           zip -r aisreplay-windows-x64.zip windows-x64/
 
       - name: Get version
@@ -50,7 +54,7 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "./publish/aisreplay-linux-x64.tar.gz,./publish/aisreplay-macos-x64.tar.gz,./publish/aisreplay-windows-x64.zip"
+          artifacts: "./publish/aisreplay-linux-x64.tar.gz,./publish/aisreplay-macos-x64.tar.gz,./publish/aisreplay-macos-arm64.tar.gz,./publish/aisreplay-windows-x64.zip"
           draft: false
           prerelease: false
           name: Release ${{ steps.version.outputs.version }}
