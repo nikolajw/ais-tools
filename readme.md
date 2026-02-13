@@ -133,11 +133,17 @@ This is the GPS Recommended Minimum format, compatible with GPS receivers.
 ## Development
 
 ### Project Structure
-- `Program.cs` - Main entry point and command-line argument parsing
-- `AisRecord.cs` - Data model for AIS records
-- `CsvParser.cs` - CSV parsing logic
-- `NmeaEncoder.cs` - NMEA 0183 and GPS encoding logic
-- `AisReplay.csproj` - Project configuration
+```
+.
+├── readme.md
+├── AisReplay.slnx          # Solution file
+└── src/
+    ├── Program.cs          # Entry point and CLI argument parsing
+    ├── AisRecord.cs        # Data model for AIS records
+    ├── CsvParser.cs        # CSV parsing logic
+    ├── NmeaEncoder.cs      # NMEA 0183 and GPS encoding logic
+    └── AisReplay.csproj    # Project configuration
+```
 
 ### Building & Testing
 ```bash
