@@ -6,7 +6,7 @@ namespace AisFileLoader;
 public class Options
 {
     [Option('i', "input", HelpText = "Input CSV file path(s) (can be specified multiple times)")]
-    public IEnumerable<string>? Inputs { get; set; }
+    public IEnumerable<string> Inputs { get; set; } = [];
 
     [Option('o', "output", HelpText = "Output CSV file path (default: write to stdout)")]
     public string? Output { get; set; }
@@ -24,5 +24,5 @@ public class Options
     public bool Exclude { get; set; }
 
     [Option('d', "date", HelpText = "Download data from ais.dk for specific date(s) (YYYY-MM-DD, can be specified multiple times)")]
-    public IEnumerable<string>? Dates { get; set; }
+    public IEnumerable<string> Dates { get; set; } = [];
 }
