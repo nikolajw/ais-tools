@@ -1,6 +1,6 @@
 using System;
 
-namespace AisReplayFilter;
+namespace AisFileLoader;
 
 public record AisRecord(
     DateTime Timestamp,

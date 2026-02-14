@@ -1,6 +1,6 @@
 using CommandLine;
 
-namespace AisReplayFilter;
+namespace AisFileLoader;
 
 public class Options
 {

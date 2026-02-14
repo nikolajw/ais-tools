@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using AisReplayFilter;
+using AisFileLoader;
 using CommandLine;
 
 string cacheDir = Path.Combine(Path.GetTempPath(), "AisReplay");

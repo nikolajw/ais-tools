@@ -36,7 +36,7 @@ The main replay tool that broadcasts AIS data via UDP to marine navigation syste
 - Adjust playback speed
 - AOT compiled for fast startup and low memory usage
 
-### 2. AisReplayFilter
+### 2. AisFileLoader
 A utility tool for preprocessing and filtering AIS CSV data before replay.
 
 **Features:**
@@ -51,7 +51,7 @@ A utility tool for preprocessing and filtering AIS CSV data before replay.
 ```bash
 # Filter AIS data and pipe directly to replay tool
 cat vessel_list.txt | \
-  dotnet run --project src/AisReplayFilter/ -- -d 2024-01-15 | \
+  dotnet run --project src/AisFileLoader/ -- -d 2024-01-15 | \
   aisreplay --gps
 ```
 
@@ -237,12 +237,12 @@ Or right-click the executable and click "Open" to bypass the warning once.
     │   ├── NmeaEncoder.cs  # NMEA 0183 and GPS encoding logic
     │   └── AisReplay.csproj
     │
-    └── AisReplayFilter/    # CSV filtering tool
+    └── AisFileLoader/      # CSV filtering tool
         ├── Program.cs      # Entry point and filtering logic
         ├── Options.cs      # Command-line options
         ├── AisRecord.cs    # Data model (shared)
         ├── CsvParser.cs    # CSV parsing (shared)
-        └── AisReplayFilter.csproj
+        └── AisFileLoader.csproj
 ```
 
 ### Building & Testing
@@ -257,52 +257,52 @@ Run AisReplay with test data:
 aisreplay --file test.csv
 ```
 
-Run AisReplayFilter:
+Run AisFileLoader:
 ```bash
-aisreplayfilter -i test.csv -m vessels.txt > filtered.csv
+aisfileloader -i test.csv -m vessels.txt > filtered.csv
 ```
 
-## AisReplayFilter Usage
+## AisFileLoader Usage
 
-AisReplayFilter is a preprocessing tool to filter AIS CSV data by vessel MMSI numbers.
+AisFileLoader is a preprocessing tool to filter AIS CSV data by vessel MMSI numbers.
 
 ### Basic Usage
 
 **Filter by MMSI list:**
 ```bash
-aisreplayfilter -i input.csv -l "220382000,210409000" > output.csv
+aisfileloader -i input.csv -l "220382000,210409000" > output.csv
 ```
 
 **Filter by MMSI file:**
 ```bash
-aisreplayfilter -i input.csv -m vessels.txt > output.csv
+aisfileloader -i input.csv -m vessels.txt > output.csv
 ```
 
 **Pipe MMSI numbers from stdin:**
 ```bash
-cat vessels.txt | aisreplayfilter -i input.csv
+cat vessels.txt | aisfileloader -i input.csv
 
 # Or explicitly:
-aisreplayfilter -i input.csv --mmsi-stdin < vessels.txt
+aisfileloader -i input.csv --mmsi-stdin < vessels.txt
 ```
 
 **Download and filter:**
 ```bash
-aisreplayfilter -d 2024-01-15 -m vessels.txt > filtered.csv
+aisfileloader -d 2024-01-15 -m vessels.txt > filtered.csv
 ```
 
 **Exclude vessels (inverse filter):**
 ```bash
-aisreplayfilter -i input.csv -m exclude_list.txt -e > output.csv
+aisfileloader -i input.csv -m exclude_list.txt -e > output.csv
 ```
 
 ### Piping Between Tools
 
-Combine AisReplayFilter with AisReplay for powerful workflows:
+Combine AisFileLoader with AisReplay for powerful workflows:
 
 ```bash
 # Filter, then replay
-cat vessel_list.txt | aisreplayfilter -d 2024-01-15 | \
+cat vessel_list.txt | aisfileloader -d 2024-01-15 | \
   aisreplay -f /dev/stdin -h 192.168.1.100 -p 5000
 ```
 

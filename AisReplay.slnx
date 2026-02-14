@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="src/AisReplay.csproj" />
-  <Project Path="src/AisReplayFilter/AisReplayFilter.csproj" />
+  <Project Path="src/AisReplay/AisReplay.csproj" />
+  <Project Path="src/AisFileLoader/AisFileLoader.csproj" />
 </Solution>
