@@ -51,7 +51,7 @@ A utility tool for preprocessing and filtering AIS CSV data before replay.
 ```bash
 # Filter AIS data and pipe directly to replay tool
 cat vessel_list.txt | \
-  dotnet run --project src/AisFileLoader/ -- -d 2024-01-15 | \
+  aisfileloader -d 2024-01-15 | \
   aisreplay --gps
 ```
 
