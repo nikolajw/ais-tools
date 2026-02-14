@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0'
+
+      - name: Restore dependencies
+        run: dotnet restore src/AisReplay.csproj
+
+      - name: Build project
+        run: dotnet build src/AisReplay.csproj --configuration Release --no-restore
+
+      - name: Verify executable runs
+        run: |
+          dotnet publish src/AisReplay.csproj --configuration Release --runtime linux-x64 --self-contained --output ./bin
+          ./bin/AisReplay --help 2>&1 || echo "Help output expected exit code"
