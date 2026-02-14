@@ -6,11 +6,7 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <Version>0.3.6</Version>
-    <NoWarn>$(NoWarn);IL3050</NoWarn>
     <RootNamespace>AisLoader</RootNamespace>
   </PropertyGroup>
-
-  <ItemGroup>
-  </ItemGroup>
 
 </Project>

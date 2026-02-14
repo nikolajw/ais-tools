@@ -6,17 +6,6 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <Version>0.3.6</Version>
-    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <NoWarn>$(NoWarn);IL3050</NoWarn>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="*.cs" Exclude="AisReplayFilter/**/*.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-  </ItemGroup>
 
 </Project>
