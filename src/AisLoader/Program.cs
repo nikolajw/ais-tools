@@ -59,9 +59,12 @@ class Program
             while (await inputReader.ReadLineAsync() is { } line)
             {
                 totalRecords++;
-                var record = CsvParser.ParseAisRecord(line);
 
-                var shouldInclude = mmsiFilter.Contains(record.Mmsi);
+                var fields = line.Split(',');
+                if (fields.Length < 3 || !int.TryParse(fields[2], out var mmsi))
+                    continue;
+
+                var shouldInclude = mmsiFilter.Contains(mmsi);
                 if (options.Exclude)
                     shouldInclude = !shouldInclude;
 
