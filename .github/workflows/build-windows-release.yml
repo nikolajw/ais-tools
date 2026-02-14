@@ -34,6 +34,7 @@ jobs:
         run: |
           cd publish
           Compress-Archive -Path windows-x64 -DestinationPath aisreplay-windows-x64.zip
+          Get-ChildItem *.zip | Format-List FullName, Length
 
       - name: Get version
         id: version
@@ -41,6 +42,9 @@ jobs:
         run: |
           if ("${{ github.ref }}".StartsWith("refs/tags/")) {
             $VERSION = "${{ github.ref_name }}"
+            if ($VERSION.StartsWith("v")) {
+              $VERSION = $VERSION.Substring(1)  # Remove 'v' prefix if present
+            }
           } else {
             $VERSION = (Get-Date -Format 'yyyy.MM.dd') + '-' + (git rev-parse --short HEAD)
           }

@@ -26,17 +26,17 @@ public static class NmeaEncoder
 
         void SetBits(int offset, int length, int value)
         {
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
-                int bitIndex = offset + i;
-                int bitValue = (value >> (length - 1 - i)) & 1;
+                var bitIndex = offset + i;
+                var bitValue = (value >> (length - 1 - i)) & 1;
                 bits[bitIndex] = (byte)bitValue;
             }
         }
 
         void SetSignedBits(int offset, int length, int value)
         {
-            int mask = (1 << length) - 1;
+            var mask = (1 << length) - 1;
             SetBits(offset, length, value & mask);
         }
 
@@ -50,25 +50,25 @@ public static class NmeaEncoder
             rotRaw = 0;
         else
         {
-            double sign = r.Rot < 0.0 ? -1.0 : 1.0;
+            var sign = r.Rot < 0.0 ? -1.0 : 1.0;
             rotRaw = Math.Clamp((int)(sign * Math.Sqrt(Math.Abs(r.Rot) / 4.733)), -126, 126);
         }
         SetSignedBits(42, 8, rotRaw);
 
-        int sogRaw = double.IsNaN(r.Sog) ? 1023 : Math.Min((int)(r.Sog * 10.0), 1022);
+        var sogRaw = double.IsNaN(r.Sog) ? 1023 : Math.Min((int)(r.Sog * 10.0), 1022);
         SetBits(50, 10, sogRaw);
         SetBits(60, 1, 0);
 
-        int lonRaw = double.IsNaN(r.Longitude) ? 0x6791AC0 : (int)(r.Longitude * 600000.0);
+        var lonRaw = double.IsNaN(r.Longitude) ? 0x6791AC0 : (int)(r.Longitude * 600000.0);
         SetSignedBits(61, 28, lonRaw);
 
-        int latRaw = double.IsNaN(r.Latitude) ? 0x3412140 : (int)(r.Latitude * 600000.0);
+        var latRaw = double.IsNaN(r.Latitude) ? 0x3412140 : (int)(r.Latitude * 600000.0);
         SetSignedBits(89, 27, latRaw);
 
-        int cogRaw = double.IsNaN(r.Cog) ? 3600 : Math.Min((int)(r.Cog * 10.0), 3599);
+        var cogRaw = double.IsNaN(r.Cog) ? 3600 : Math.Min((int)(r.Cog * 10.0), 3599);
         SetBits(116, 12, cogRaw);
 
-        int hdgRaw = (r.Heading < 0 || r.Heading > 359) ? 511 : r.Heading;
+        var hdgRaw = (r.Heading < 0 || r.Heading > 359) ? 511 : r.Heading;
         SetBits(128, 9, hdgRaw);
         SetBits(137, 6, r.Timestamp.Second);
         SetBits(143, 2, 0);
@@ -81,16 +81,16 @@ public static class NmeaEncoder
 
     public static (string Payload, int FillBits) EncodeBitsToArmor(byte[] bits)
     {
-        int charCount = (bits.Length + 5) / 6;
-        int fillBits = charCount * 6 - bits.Length;
+        var charCount = (bits.Length + 5) / 6;
+        var fillBits = charCount * 6 - bits.Length;
         var chars = new char[charCount];
-        for (int i = 0; i < charCount; i++)
+        for (var i = 0; i < charCount; i++)
         {
-            int value = 0;
-            for (int j = 0; j < 6; j++)
+            var value = 0;
+            for (var j = 0; j < 6; j++)
             {
-                int bitIndex = i * 6 + j;
-                int bit = bitIndex < bits.Length ? bits[bitIndex] : 0;
+                var bitIndex = i * 6 + j;
+                var bit = bitIndex < bits.Length ? bits[bitIndex] : 0;
                 value = (value << 1) | bit;
             }
             chars[i] = (char)(value < 40 ? value + 48 : value + 56);
@@ -100,8 +100,8 @@ public static class NmeaEncoder
 
     public static string NmeaChecksum(string sentence)
     {
-        int cs = 0;
-        foreach (char c in sentence)
+        var cs = 0;
+        foreach (var c in sentence)
             cs ^= c;
         return cs.ToString("X2");
     }
@@ -115,9 +115,9 @@ public static class NmeaEncoder
 
     public static string ToNmeaCoord(double degrees)
     {
-        double d = Math.Abs(degrees);
-        int deg = (int)Math.Truncate(d);
-        double minutes = (d - deg) * 60.0;
+        var d = Math.Abs(degrees);
+        var deg = (int)Math.Truncate(d);
+        var minutes = (d - deg) * 60.0;
         return $"{deg:D2}{minutes:00.0000}";
     }
 

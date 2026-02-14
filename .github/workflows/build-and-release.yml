@@ -32,12 +32,14 @@ jobs:
         run: |
           cd publish
           tar -czf aisreplay-linux-x64.tar.gz linux-x64/
+          ls -lh *.tar.gz
 
       - name: Get version
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION="${{ github.ref_name }}"
+            VERSION=${VERSION#v}  # Remove 'v' prefix if present
           else
             VERSION=$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)
           fi
@@ -51,6 +53,6 @@ jobs:
           draft: false
           prerelease: false
           name: Release ${{ steps.version.outputs.version }}
-          tag: ${{ steps.version.outputs.version }}
+          tag: v${{ steps.version.outputs.version }}
           body: "Automated release of AisReplay"
           token: ${{ github.token }}

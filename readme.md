@@ -30,6 +30,31 @@ This is useful for:
 
 ### Installation
 
+#### Option 1: Homebrew (macOS)
+
+The easiest way to install on macOS:
+
+```bash
+brew tap nikolajw/aisreplay
+brew install aisreplay
+```
+
+Then run:
+```bash
+aisreplay --file data.csv
+```
+
+#### Option 2: Pre-built Binaries
+
+Download pre-built binaries for Linux, macOS, or Windows from [GitHub Releases](https://github.com/nikolajw/ais-replay/releases).
+
+Extract and run:
+```bash
+./AisReplay --file data.csv
+```
+
+#### Option 3: Build from Source
+
 1. Clone the repository:
    ```bash
    git clone git@github.com:nikolajw/ais-replay.git
@@ -141,16 +166,18 @@ Download from [GitHub Releases](https://github.com/nikolajw/ais-replay/releases)
 
 ### macOS Security Warning
 
-On macOS, you may see a security warning: "Apple could not verify 'AisReplay' is free of malware."
+If you download the binary directly from GitHub Releases on macOS, you may see a security warning: "Apple could not verify 'AisReplay' is free of malware."
 
-This appears because the binary is unsigned. To bypass this warning, run:
+**To avoid this, use Homebrew** (see Installation section above) - it handles all security certificates automatically.
+
+**If using a downloaded binary**, bypass the warning with:
 
 ```bash
 xattr -d com.apple.quarantine /path/to/AisReplay
 ./AisReplay --file data.csv
 ```
 
-Alternatively, right-click the executable and click "Open" to bypass the warning once.
+Or right-click the executable and click "Open" to bypass the warning once.
 
 ## Development
 
