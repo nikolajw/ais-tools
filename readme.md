@@ -89,33 +89,41 @@ Data will be automatically downloaded from `aisdata.ais.dk` and cached in your t
 
 ### Options
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--file <path>` | Path to a CSV file with AIS records (required if --date not provided) | `--file data.csv` |
-| `--date <YYYY-MM-DD>` | Download data for a specific date (required if --file not provided) | `--date 2024-01-15` |
-| `--mmsi <mmsi>` | Filter to a specific vessel (optional) | `--mmsi 220382000` |
-| `--x-speed <multiplier>` | Playback speed multiplier (optional, default: 1) | `--x-speed 10` |
-| `--gps` | Output GPS format (GPRMC) instead of NMEA 0183 (optional) | `--gps` |
-| `--skip-moored` | Skip moored/stationary vessels (optional) | `--skip-moored` |
-| `--purge-cache` | Clear cached downloads and exit | `--purge-cache` |
+| Short | Long | Description | Example |
+|-------|------|-------------|---------|
+| `-f` | `--file <path>` | Path to a CSV file with AIS records (required if --date not provided) | `-f data.csv` |
+| `-d` | `--date <YYYY-MM-DD>` | Download data for a specific date (required if --file not provided) | `-d 2024-01-15` |
+| `-m` | `--mmsi <mmsi>` | Filter to a specific vessel (optional) | `-m 220382000` |
+| `-x` | `--x-speed <multiplier>` | Playback speed multiplier (optional, default: 1) | `-x 10` |
+| `-g` | `--gps` | Output GPS format (GPRMC) instead of NMEA 0183 (optional) | `-g` |
+| `-s` | `--skip-moored` | Skip moored/stationary vessels (optional) | `-s` |
+| `-c` | `--purge-cache` | Clear cached downloads and exit | `-c` |
+| `-h` | `--host <ip>` | UDP host/IP address to send events to (default: 127.0.0.1) | `-h 192.168.1.100` |
+| `-p` | `--port <port>` | UDP port to send events to (default: 10110) | `-p 5000` |
 
 ### Examples
 
 ```bash
 # Replay all vessels from a CSV at normal speed
-dotnet run -- --file shipdata.csv
+aisreplay --file shipdata.csv
 
-# Replay one vessel at 10x speed
-dotnet run -- --file shipdata.csv --mmsi 220382000 --x-speed 10
+# Replay one vessel at 10x speed (using short flags)
+aisreplay -f shipdata.csv -m 220382000 -x 10
 
-# Download and replay today's data, skip moored vessels
-dotnet run -- --date 2024-01-15 --skip-moored
+# Download and replay data from a specific date, skip moored vessels
+aisreplay --date 2024-01-15 --skip-moored
 
 # Replay in GPS format for GPS-compatible receivers
-dotnet run -- --file shipdata.csv --gps
+aisreplay -f shipdata.csv -g
+
+# Send events to a different host and port
+aisreplay -f shipdata.csv -h 192.168.1.100 -p 5000
+
+# Combine multiple options
+aisreplay -d 2024-01-15 -m 220382000 -x 10 -s -h 192.168.1.100 -p 5000
 
 # Clear cached data
-dotnet run -- --purge-cache
+aisreplay --purge-cache
 ```
 
 ## CSV File Format
