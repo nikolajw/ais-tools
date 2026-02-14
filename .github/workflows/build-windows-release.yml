@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -39,17 +41,22 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $VERSION = (Get-Date -Format 'yyyy.MM.dd') + '-' + (git rev-parse --short HEAD)
+          if ("${{ github.ref }}".StartsWith("refs/tags/")) {
+            $VERSION = "${{ github.ref_name }}"
+          } else {
+            $VERSION = (Get-Date -Format 'yyyy.MM.dd') + '-' + (git rev-parse --short HEAD)
+          }
           "version=$VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: ncipollo/release-action@v1
         with:
           artifacts: "./publish/aisreplay-windows-x64.zip"
           draft: false
           prerelease: false
           name: Release ${{ steps.version.outputs.version }}
-          tag: v${{ steps.version.outputs.version }}
+          tag: ${{ steps.version.outputs.version }}
           allowUpdates: true
           body: "Windows build for AisReplay"
           token: ${{ github.token }}
