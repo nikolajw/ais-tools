@@ -27,15 +27,21 @@ jobs:
         run: dotnet build src/AisReplay/AisReplay.csproj --configuration Release --no-restore
 
       - name: Publish for macOS (Intel)
-        run: dotnet publish src/AisReplay/AisReplay.csproj --configuration Release --runtime osx-x64 --self-contained --output ./publish/macos-x64
+        run: |
+          dotnet publish src/AisReplay/AisReplay.csproj --configuration Release --runtime osx-x64 --self-contained --output ./publish/macos-x64
+          dotnet publish src/AisFileLoader/AisFileLoader.csproj --configuration Release --runtime osx-x64 --self-contained --output ./publish/macos-x64
 
       - name: Publish for macOS (Apple Silicon)
-        run: dotnet publish src/AisReplay/AisReplay.csproj --configuration Release --runtime osx-arm64 --self-contained --output ./publish/macos-arm64
+        run: |
+          dotnet publish src/AisReplay/AisReplay.csproj --configuration Release --runtime osx-arm64 --self-contained --output ./publish/macos-arm64
+          dotnet publish src/AisFileLoader/AisFileLoader.csproj --configuration Release --runtime osx-arm64 --self-contained --output ./publish/macos-arm64
 
       - name: Code sign binaries
         run: |
           codesign -s - -f --deep ./publish/macos-x64/AisReplay
+          codesign -s - -f --deep ./publish/macos-x64/AisFileLoader
           codesign -s - -f --deep ./publish/macos-arm64/AisReplay
+          codesign -s - -f --deep ./publish/macos-arm64/AisFileLoader
 
       - name: Create archives
         run: |
@@ -65,5 +71,5 @@ jobs:
           name: Release ${{ steps.version.outputs.version }}
           tag: v${{ steps.version.outputs.version }}
           allowUpdates: true
-          body: "macOS builds for AisReplay"
+          body: "macOS builds (Intel and Apple Silicon) - AisReplay and AisFileLoader"
           token: ${{ github.token }}
