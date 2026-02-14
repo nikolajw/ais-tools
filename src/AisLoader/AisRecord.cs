@@ -1,6 +1,6 @@
 using System;
 
-namespace AisFileLoader;
+namespace AisLoader;
 
 public record AisRecord(
     DateTime Timestamp,
