@@ -165,11 +165,3 @@ dotnet run -- --file test.csv  # Run with test data
 Downloaded files are cached in the system temp directory under `AisReplay/`:
 - Location: `%TEMP%/AisReplay/` (Windows) or `/tmp/AisReplay/` (Linux/macOS)
 - Use `--purge-cache` to clear cached files
-
-## License
-
-[Add your license information here]
-
-## Contributing
-
-[Add contribution guidelines here]
