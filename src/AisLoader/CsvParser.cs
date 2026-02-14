@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace AisFileLoader;
+namespace AisLoader;
 
 public static class CsvParser
 {
