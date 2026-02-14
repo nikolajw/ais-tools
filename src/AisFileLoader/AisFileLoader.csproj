@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
-    <Version>0.3.0</Version>
+    <Version>0.3.3</Version>
     <NoWarn>$(NoWarn);IL3050</NoWarn>
   </PropertyGroup>
 
