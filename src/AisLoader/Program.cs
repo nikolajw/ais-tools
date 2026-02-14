@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace AisLoader;
@@ -13,202 +12,139 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
-        var options = ArgsParser.Parse(args);
-        var cacheDir = Path.Combine(Path.GetTempPath(), "AisReplay");
+        Option<string[]> dateOption = new("--date")
+        {
+            Description = "Date range (can be repeated)"
+        };
 
-        var mmsiFilter = await GetMmsiList(options);
-        var csvPaths = await GetCsvPaths(cacheDir, options);
+        Option<uint[]> mmsiOption = new("--mmsi")
+        {
+            Description = "MMSI number to include in output"
+        };
 
-        await Console.Error.WriteLineAsync($"Reading from {csvPaths.Count} file(s):");
-        foreach (var path in csvPaths)
-            await Console.Error.WriteLineAsync($"  {path}");
+        RootCommand rootCommand = new("AIS Loader");
 
-        var outputDest = GetOutputDestination(options);
-        await Console.Error.WriteLineAsync($"Writing to: {outputDest}");
+        rootCommand.Options.Add(dateOption);
+        rootCommand.Options.Add(mmsiOption);
 
+        var parseResult = rootCommand.Parse(args);
 
-        await using var outputWriter = string.IsNullOrEmpty(outputDest)
-            ? new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8)
-            : new StreamWriter(outputDest, false, Encoding.UTF8);
+        if (parseResult.Errors.Count == 0)
+        {
+            var dates = parseResult.GetValue(dateOption);
+            var mmsiFilter = parseResult.GetValue(mmsiOption);
+            
+            await foreach (var file in DownloadAndExtract(dates))
+            {
+                await WriteRecordsAsync(file, mmsiFilter);
+            }
 
-        return await WriteRecords(csvPaths, outputWriter, mmsiFilter);
+            return 0;
+        }
+
+        foreach (var parseError in parseResult.Errors)
+        {
+            await Console.Error.WriteLineAsync(parseError.Message);
+        }
+
+        return 1;
     }
 
-    private static async Task<int> WriteRecords(List<string> csvPaths, StreamWriter outputWriter,
-        HashSet<int> mmsiFilter)
+    private static async Task<long> WriteRecordsAsync(FileInfo file, uint[]? mmsiFilter)
     {
         var totalRecords = 0;
         var filteredRecords = 0;
         var headerWritten = false;
 
-        foreach (var csvPath in csvPaths)
+        using var inputReader = file.OpenText();
+        if (!headerWritten)
         {
-            using var inputReader = new StreamReader(csvPath);
-            if (!headerWritten)
+            var header = await inputReader.ReadLineAsync();
+            if (header != null)
             {
-                var header = await inputReader.ReadLineAsync();
-                if (header != null)
-                {
-                    await outputWriter.WriteLineAsync(header);
-                    headerWritten = true;
-                }
+                await Console.Out.WriteLineAsync(header);
+                headerWritten = true;
+            }
+        }
+        else
+        {
+            await inputReader.ReadLineAsync();
+        }
+
+        while (await inputReader.ReadLineAsync() is { } line)
+        {
+            totalRecords++;
+
+            var fields = line.Split(',');
+            if (fields.Length < 3)
+                continue;
+
+            // Include line if no filter is specified
+            if (mmsiFilter is { Length: 0 })
+            {
+                await Console.Out.WriteLineAsync(line);
+                continue;
+            }
+
+            // Include line if MMSI matches the filter
+            if (uint.TryParse(fields[2], out var mmsi) && mmsiFilter.Contains(mmsi))
+            {
+                await Console.Out.WriteLineAsync(line);
+            }
+        }
+        
+        return filteredRecords;
+    }
+
+    private static async IAsyncEnumerable<FileInfo> DownloadAndExtract(string[]? dates)
+    {
+        if (dates == null || dates.Length == 0) yield break;
+        
+        var cacheDir = Path.Combine(Path.GetTempPath(), "AisReplay");
+
+        foreach (var date in dates)
+        {
+            var csv = Path.Combine(cacheDir, $"aisdk-{date}.csv");
+
+            if (File.Exists(csv))
+            {
+                yield return new FileInfo(csv);
             }
             else
             {
-                await inputReader.ReadLineAsync();
-            }
+                var zipPath = await DownloadZip(date, cacheDir);
 
-            while (await inputReader.ReadLineAsync() is { } line)
-            {
-                totalRecords++;
-
-                var fields = line.Split(',');
-                if (fields.Length < 3)
-                    continue;
-
-                // Include line if no filter is specified OR if MMSI matches the filter
-                bool shouldInclude = mmsiFilter.Count == 0;
-                if (!shouldInclude && int.TryParse(fields[2], out var mmsi))
-                {
-                    shouldInclude = mmsiFilter.Contains(mmsi);
-                }
-
-                if (shouldInclude)
-                {
-                    await outputWriter.WriteLineAsync(line);
-                    filteredRecords++;
-                }
+                yield return await ExtractCsv(zipPath, cacheDir, csv);
             }
         }
-
-        await Console.Error.WriteLineAsync(
-            $"Processed {totalRecords} records from {csvPaths.Count} file(s), wrote {filteredRecords} records");
-        return 0;
     }
 
-    private static string GetOutputDestination(Options options)
+    private static async Task<FileInfo> ExtractCsv(string zipPath, string cacheDir, string csv)
     {
-        if (!string.IsNullOrEmpty(options.Output))
-            return options.Output;
-
-        return Console.IsOutputRedirected ? "(file)" : "stdout";
-    }
-
-    private static async Task<List<string>> GetCsvPaths(string cacheDir, Options options)
-    {
-        var csvPaths = new List<string>();
-
-        if (options.Dates.Length > 0)
-        {
-            foreach (var date in options.Dates)
-            {
-                csvPaths.Add(await DownloadAndExtract(date, cacheDir));
-            }
-        }
-
-        if (options.Inputs.Length > 0)
-        {
-            csvPaths.AddRange(options.Inputs);
-        }
-
-        if (csvPaths.Count == 0)
-        {
-            await Console.Error.WriteLineAsync("Error: At least one --input file or --date is required");
-            return csvPaths;
-        }
-
-        foreach (var csvPath in csvPaths.Where(csvPath => !File.Exists(csvPath)))
-        {
-            await Console.Error.WriteLineAsync($"Error: CSV file not found: {csvPath}");
-            return [];
-        }
-
-
-        return csvPaths;
-    }
-
-    private static async Task<HashSet<int>> GetMmsiList(Options options)
-    {
-        var mmsiFilter = new HashSet<int>();
-
-        if (!string.IsNullOrEmpty(options.MmsiFile))
-        {
-            if (!File.Exists(options.MmsiFile))
-            {
-                await Console.Error.WriteLineAsync($"Error: MMSI file not found: {options.MmsiFile}");
-                return mmsiFilter;
-            }
-
-            var lines = await File.ReadAllLinesAsync(options.MmsiFile);
-            foreach (var line in lines)
-            {
-                if (int.TryParse(line.Trim(), out var mmsi))
-                    mmsiFilter.Add(mmsi);
-            }
-
-            await Console.Error.WriteLineAsync($"Loaded {mmsiFilter.Count} MMSI numbers from file");
-        }
-        else if (!string.IsNullOrEmpty(options.MmsiList))
-        {
-            var mmsis = options.MmsiList.Split(',');
-            foreach (var mmsi in mmsis)
-            {
-                if (int.TryParse(mmsi.Trim(), out var value))
-                    mmsiFilter.Add(value);
-            }
-
-            await Console.Error.WriteLineAsync($"Loaded {mmsiFilter.Count} MMSI numbers from list");
-        }
-        else if (options.MmsiStdin || Console.IsInputRedirected)
-        {
-            await Console.Error.WriteLineAsync("Reading MMSI numbers from stdin...");
-            var stdinReader = new StreamReader(Console.OpenStandardInput());
-            while (await stdinReader.ReadLineAsync() is { } line)
-            {
-                if (int.TryParse(line.Trim(), out var mmsi) && mmsi > 0)
-                    mmsiFilter.Add(mmsi);
-            }
-
-            await Console.Error.WriteLineAsync($"Loaded {mmsiFilter.Count} MMSI numbers from stdin");
-        }
-
-        if (mmsiFilter.Count == 0)
-        {
-            await Console.Error.WriteLineAsync(
-                "Error: No MMSI numbers specified. Use --mmsi-file, --mmsi-list, or pipe MMSI numbers to stdin");
-        }
-
-        return mmsiFilter;
-    }
-
-    private static async Task<string> DownloadAndExtract(string date, string cacheDir)
-    {
-        Directory.CreateDirectory(cacheDir);
-        var csv = Path.Combine(cacheDir, $"aisdk-{date}.csv");
-        if (File.Exists(csv))
-        {
-            Console.Error.WriteLine($"Using cached {csv}");
-            return csv;
-        }
-
-        var url = $"http://aisdata.ais.dk/aisdk-{date}.zip";
-        var zipPath = Path.Combine(cacheDir, $"aisdk-{date}.zip");
-        Console.Error.WriteLine($"Downloading {url} ...");
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromMinutes(30);
-        using var response = await client.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-        await using (var fs = File.Create(zipPath))
-        {
-            await response.Content.CopyToAsync(fs);
-        }
-
-        Console.Error.WriteLine("Extracting ...");
+        await Console.Error.WriteLineAsync($"Extracting {zipPath} to {csv}");
         await ZipFile.ExtractToDirectoryAsync(zipPath, cacheDir, true);
+
         File.Delete(zipPath);
+
         if (!File.Exists(csv))
             throw new Exception($"Expected CSV not found after extraction: {csv}");
-        Console.Error.WriteLine($"Ready: {csv}");
-        return csv;
+        await Console.Error.WriteLineAsync($"Ready: {csv}");
+        
+        return new FileInfo(csv);
+    }
+
+    private static async Task<string> DownloadZip(string date, string cacheDir)
+    {
+        var url = $"http://aisdata.ais.dk/aisdk-{date}.zip";
+        var zipPath = Path.Combine(cacheDir, $"aisdk-{date}.zip");
+        await Console.Error.WriteLineAsync($"Downloading {url} to {zipPath}...");
+
+        using var client = new HttpClient();
+        var stream = await client.GetStreamAsync(url);
+
+        await using var fileStream = File.Create(zipPath);
+        await stream.CopyToAsync(fileStream);
+        
+        return zipPath;
     }
 }
