@@ -1,12 +1,12 @@
+using System.CommandLine;
 using System.IO;
+using System.Linq;
 
 namespace AisLoader;
 
-using System.CommandLine;
-
-public static class RootCommandFactory
+public static class ArgsParser
 {
-    public static RootCommand Create()
+    public static Options Parse(string[] args)
     {
         var inputOption = new Option<FileInfo[]>("-i", "--input")
         {
@@ -46,7 +46,6 @@ public static class RootCommandFactory
         };
 
         var cmd = new RootCommand();
-
         cmd.Options.Add(inputOption);
         cmd.Options.Add(outputOption);
         cmd.Options.Add(mmsiFileOption);
@@ -55,6 +54,25 @@ public static class RootCommandFactory
         cmd.Options.Add(excludeOption);
         cmd.Options.Add(dateOption);
 
-        return cmd;
+        var result = cmd.Parse(args);
+
+        var inputs = result.CommandResult.GetValue(inputOption) ?? [];
+        var output = result.CommandResult.GetValue(outputOption);
+        var mmsiFile = result.CommandResult.GetValue(mmsiFileOption);
+        var mmsiList = result.CommandResult.GetValue(mmsiListOption);
+        var mmsiStdin = result.CommandResult.GetValue(mmsiStdinOption);
+        var exclude = result.CommandResult.GetValue(excludeOption);
+        var dates = result.CommandResult.GetValue(dateOption) ?? [];
+
+        return new Options
+        {
+            Inputs = inputs.Select(f => f.FullName).ToArray(),
+            Output = output?.FullName,
+            MmsiFile = mmsiFile?.FullName,
+            MmsiList = mmsiList,
+            MmsiStdin = mmsiStdin,
+            Exclude = exclude,
+            Dates = dates
+        };
     }
 }

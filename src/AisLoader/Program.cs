@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
@@ -13,60 +12,63 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        var options = ArgsParser.Parse(args);
         var cacheDir = Path.Combine(Path.GetTempPath(), "AisReplay");
-        var rootCommand = RootCommandFactory.Create();
-        var result = rootCommand.Parse(args);
 
-        var mmsiFilter = await GetMmsiList(result);
-        
-        var csvPaths = await GetCsvPaths(cacheDir, result);
+        var mmsiFilter = await GetMmsiList(options);
+        var csvPaths = await GetCsvPaths(cacheDir, options);
 
         await Console.Error.WriteLineAsync($"Reading from {csvPaths.Count} file(s):");
         foreach (var path in csvPaths)
             await Console.Error.WriteLineAsync($"  {path}");
 
-        var outputDest = GetOutputDestination(result);
+        var outputDest = GetOutputDestination(options);
         await Console.Error.WriteLineAsync($"Writing to: {outputDest}");
 
+
+        await using var outputWriter = string.IsNullOrEmpty(outputDest)
+            ? new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8)
+            : new StreamWriter(outputDest, false, Encoding.UTF8);
+
+        return await WriteRecords(csvPaths, outputWriter, mmsiFilter, options);
+    }
+
+    private static async Task<int> WriteRecords(List<string> csvPaths, StreamWriter outputWriter, HashSet<int> mmsiFilter, Options options)
+    {
         var totalRecords = 0;
         var filteredRecords = 0;
         var headerWritten = false;
 
-        await using (var outputWriter = string.IsNullOrEmpty(outputDest)
-                         ? new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8)
-                         : new StreamWriter(outputDest, false, Encoding.UTF8))
+        foreach (var csvPath in csvPaths)
         {
-            foreach (var csvPath in csvPaths)
+            using var inputReader = new StreamReader(csvPath);
+            if (!headerWritten)
             {
-                using var inputReader = new StreamReader(csvPath);
-                if (!headerWritten)
+                var header = await inputReader.ReadLineAsync();
+                if (header != null)
                 {
-                    var header = await inputReader.ReadLineAsync();
-                    if (header != null)
-                    {
-                        await outputWriter.WriteLineAsync(header);
-                        headerWritten = true;
-                    }
+                    await outputWriter.WriteLineAsync(header);
+                    headerWritten = true;
                 }
-                else
-                {
-                    await inputReader.ReadLineAsync();
-                }
+            }
+            else
+            {
+                await inputReader.ReadLineAsync();
+            }
 
-                while (await inputReader.ReadLineAsync() is { } line)
-                {
-                    totalRecords++;
-                    var record = CsvParser.ParseAisRecord(line);
+            while (await inputReader.ReadLineAsync() is { } line)
+            {
+                totalRecords++;
+                var record = CsvParser.ParseAisRecord(line);
 
-                    var shouldInclude = mmsiFilter.Contains(record.Mmsi);
-                    if (options.Exclude)
-                        shouldInclude = !shouldInclude;
+                var shouldInclude = mmsiFilter.Contains(record.Mmsi);
+                if (options.Exclude)
+                    shouldInclude = !shouldInclude;
 
-                    if (!shouldInclude) continue;
-                    
-                    await outputWriter.WriteLineAsync(line);
-                    filteredRecords++;
-                }
+                if (!shouldInclude) continue;
+
+                await outputWriter.WriteLineAsync(line);
+                filteredRecords++;
             }
         }
 
@@ -75,12 +77,12 @@ class Program
         return 0;
     }
 
-    private static string GetOutputDestination(ParseResult result)
+    private static string GetOutputDestination(Options options)
     {
         return string.IsNullOrEmpty(options.Output) ? "stdout" : options.Output;
     }
 
-    private static async Task<List<string>> GetCsvPaths(string cacheDir, ParseResult result)
+    private static async Task<List<string>> GetCsvPaths(string cacheDir, Options options)
     {
         var csvPaths = new List<string>();
 
@@ -108,7 +110,7 @@ class Program
             if (!File.Exists(csvPath))
             {
                 Console.Error.WriteLine($"Error: CSV file not found: {csvPath}");
-                return 1;
+                return new List<string>();
             }
         }
 
@@ -116,7 +118,7 @@ class Program
         return csvPaths;
     }
 
-    private static async Task<HashSet<int>> GetMmsiList(ParseResult result)
+    private static async Task<HashSet<int>> GetMmsiList(Options options)
     {
         var mmsiFilter = new HashSet<int>();
 
@@ -125,7 +127,6 @@ class Program
             if (!File.Exists(options.MmsiFile))
             {
                 Console.Error.WriteLine($"Error: MMSI file not found: {options.MmsiFile}");
-                main = 1;
                 return mmsiFilter;
             }
 
@@ -167,8 +168,6 @@ class Program
         {
             Console.Error.WriteLine(
                 "Error: No MMSI numbers specified. Use --mmsi-file, --mmsi-list, or pipe MMSI numbers to stdin");
-            main = 1;
-            return mmsiFilter;
         }
 
         return mmsiFilter;
