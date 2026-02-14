@@ -63,14 +63,21 @@ class Program
                 totalRecords++;
 
                 var fields = line.Split(',');
-                if (fields.Length < 3 || !int.TryParse(fields[2], out var mmsi))
+                if (fields.Length < 3)
                     continue;
 
-                if (!mmsiFilter.Contains(mmsi))
-                    continue;
+                // Include line if no filter is specified OR if MMSI matches the filter
+                bool shouldInclude = mmsiFilter.Count == 0;
+                if (!shouldInclude && int.TryParse(fields[2], out var mmsi))
+                {
+                    shouldInclude = mmsiFilter.Contains(mmsi);
+                }
 
-                await outputWriter.WriteLineAsync(line);
-                filteredRecords++;
+                if (shouldInclude)
+                {
+                    await outputWriter.WriteLineAsync(line);
+                    filteredRecords++;
+                }
             }
         }
 
