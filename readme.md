@@ -296,14 +296,45 @@ aisfileloader -d 2024-01-15 -m vessels.txt > filtered.csv
 aisfileloader -i input.csv -m exclude_list.txt -e > output.csv
 ```
 
+### Multiple Files and Dates
+
+AisFileLoader can combine data from multiple input sources in a single operation:
+
+**Multiple input files:**
+```bash
+aisfileloader -i file1.csv -i file2.csv -i file3.csv -m vessels.txt -o combined.csv
+```
+
+**Multiple dates from ais.dk:**
+```bash
+aisfileloader -d 2024-01-15 -d 2024-01-16 -d 2024-01-17 -m vessels.txt > combined.csv
+```
+
+**Mix files and dates:**
+```bash
+aisfileloader -i local_data.csv -d 2024-01-15 -d 2024-01-16 -m 220382000,210409000
+```
+
+All records from the specified sources are combined into a single output stream with:
+- Header written only once (no duplication)
+- MMSI filtering applied to all sources
+- Combined statistics at the end
+
 ### Piping Between Tools
 
 Combine AisFileLoader with AisReplay for powerful workflows:
 
 ```bash
-# Filter, then replay
+# Filter single date and replay
 cat vessel_list.txt | aisfileloader -d 2024-01-15 | \
   aisreplay -f /dev/stdin -h 192.168.1.100 -p 5000
+
+# Filter multiple dates and replay
+aisfileloader -d 2024-01-15 -d 2024-01-16 -d 2024-01-17 -m vessels.txt | \
+  aisreplay -f /dev/stdin -x 10
+
+# Filter multiple files and save to disk
+aisfileloader -i file1.csv -i file2.csv -i file3.csv -m 220382000 > filtered.csv
 ```
 
 ## Cache
