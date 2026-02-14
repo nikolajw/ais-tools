@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -71,68 +72,97 @@ async Task<int> RunAsync(Options options, string cacheDir)
         return 1;
     }
 
-    // Load input CSV
-    string csvPath;
-    if (!string.IsNullOrEmpty(options.Date))
+    // Collect all input CSV paths
+    var csvPaths = new List<string>();
+
+    if (options.Dates?.Any() == true)
     {
-        csvPath = await DownloadAndExtract(options.Date, cacheDir);
+        foreach (var date in options.Dates)
+        {
+            csvPaths.Add(await DownloadAndExtract(date, cacheDir));
+        }
     }
-    else if (!string.IsNullOrEmpty(options.Input))
+
+    if (options.Inputs?.Any() == true)
     {
-        csvPath = options.Input;
+        csvPaths.AddRange(options.Inputs);
     }
-    else
+
+    if (csvPaths.Count == 0)
     {
-        Console.Error.WriteLine("Error: Either --input or --date is required");
+        Console.Error.WriteLine("Error: At least one --input file or --date is required");
         return 1;
     }
 
-    if (!File.Exists(csvPath))
+    // Validate all files exist
+    foreach (var csvPath in csvPaths)
     {
-        Console.Error.WriteLine($"Error: CSV file not found: {csvPath}");
-        return 1;
+        if (!File.Exists(csvPath))
+        {
+            Console.Error.WriteLine($"Error: CSV file not found: {csvPath}");
+            return 1;
+        }
     }
 
     // Filter and write output
-    Console.Error.WriteLine($"Reading from: {csvPath}");
+    Console.Error.WriteLine($"Reading from {csvPaths.Count} file(s):");
+    foreach (var path in csvPaths)
+        Console.Error.WriteLine($"  {path}");
+
     var outputDest = string.IsNullOrEmpty(options.Output) ? "stdout" : options.Output;
     Console.Error.WriteLine($"Writing to: {outputDest}");
 
     int totalRecords = 0;
     int filteredRecords = 0;
+    bool headerWritten = false;
 
-    using (var inputReader = new StreamReader(csvPath))
     using (var outputWriter = string.IsNullOrEmpty(options.Output)
         ? new StreamWriter(Console.OpenStandardOutput(), Encoding.UTF8)
         : new StreamWriter(options.Output, false, Encoding.UTF8))
     {
-        // Copy header
-        var header = await inputReader.ReadLineAsync();
-        if (header != null)
+        // Process each input file
+        foreach (var csvPath in csvPaths)
         {
-            await outputWriter.WriteLineAsync(header);
-        }
-
-        // Process records
-        string? line;
-        while ((line = await inputReader.ReadLineAsync()) != null)
-        {
-            totalRecords++;
-            var record = CsvParser.ParseAisRecord(line);
-
-            bool shouldInclude = mmsiFilter.Contains(record.Mmsi);
-            if (options.Exclude)
-                shouldInclude = !shouldInclude;
-
-            if (shouldInclude)
+            using (var inputReader = new StreamReader(csvPath))
             {
-                await outputWriter.WriteLineAsync(line);
-                filteredRecords++;
+                // Copy header (only once)
+                if (!headerWritten)
+                {
+                    var header = await inputReader.ReadLineAsync();
+                    if (header != null)
+                    {
+                        await outputWriter.WriteLineAsync(header);
+                        headerWritten = true;
+                    }
+                }
+                else
+                {
+                    // Skip header line in subsequent files
+                    await inputReader.ReadLineAsync();
+                }
+
+                // Process records
+                string? line;
+                while ((line = await inputReader.ReadLineAsync()) != null)
+                {
+                    totalRecords++;
+                    var record = CsvParser.ParseAisRecord(line);
+
+                    bool shouldInclude = mmsiFilter.Contains(record.Mmsi);
+                    if (options.Exclude)
+                        shouldInclude = !shouldInclude;
+
+                    if (shouldInclude)
+                    {
+                        await outputWriter.WriteLineAsync(line);
+                        filteredRecords++;
+                    }
+                }
             }
         }
     }
 
-    Console.Error.WriteLine($"Processed {totalRecords} records, wrote {filteredRecords} records");
+    Console.Error.WriteLine($"Processed {totalRecords} records from {csvPaths.Count} file(s), wrote {filteredRecords} records");
     return 0;
 }
 

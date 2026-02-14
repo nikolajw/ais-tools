@@ -1,11 +1,12 @@
+using System.Collections.Generic;
 using CommandLine;
 
 namespace AisFileLoader;
 
 public class Options
 {
-    [Option('i', "input", Required = true, HelpText = "Input CSV file path (or URL to ais.dk data)")]
-    public string Input { get; set; } = "";
+    [Option('i', "input", HelpText = "Input CSV file path(s) (can be specified multiple times)")]
+    public IEnumerable<string>? Inputs { get; set; }
 
     [Option('o', "output", HelpText = "Output CSV file path (default: write to stdout)")]
     public string? Output { get; set; }
@@ -22,6 +23,6 @@ public class Options
     [Option('e', "exclude", Default = false, HelpText = "Exclude the specified MMSIs instead of including only them")]
     public bool Exclude { get; set; }
 
-    [Option('d', "date", HelpText = "Download data from ais.dk for a specific date (YYYY-MM-DD)")]
-    public string? Date { get; set; }
+    [Option('d', "date", HelpText = "Download data from ais.dk for specific date(s) (YYYY-MM-DD, can be specified multiple times)")]
+    public IEnumerable<string>? Dates { get; set; }
 }
