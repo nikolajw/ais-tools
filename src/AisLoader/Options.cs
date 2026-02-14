@@ -1,4 +1,4 @@
-namespace AisFileLoader;
+namespace AisLoader;
 
 public class Options
 {
