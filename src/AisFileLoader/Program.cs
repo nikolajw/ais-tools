@@ -56,7 +56,7 @@ static (Options?, int) ParseArguments(string[] args)
                 PrintHelp();
                 return (null, 0);
             case "--version":
-                Console.WriteLine("AisFileLoader 0.3.4");
+                Console.WriteLine("AisFileLoader 0.3.5");
                 return (null, 0);
             default:
                 Console.Error.WriteLine($"Unknown argument: {args[i]}");
