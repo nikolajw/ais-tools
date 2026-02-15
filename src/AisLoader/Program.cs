@@ -33,10 +33,17 @@ class Program
         {
             var dates = parseResult.GetValue(dateOption);
             var mmsiFilter = parseResult.GetValue(mmsiOption);
-            
+
             await foreach (var file in DownloadAndExtract(dates))
             {
-                await WriteRecordsAsync(file, mmsiFilter);
+                try
+                {
+                    await WriteRecordsAsync(file, mmsiFilter);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error processing {file.Name}: {ex}");
+                }
             }
 
             return 0;
@@ -44,14 +51,18 @@ class Program
 
         foreach (var parseError in parseResult.Errors)
         {
-            await Console.Error.WriteLineAsync(parseError.Message);
+            Console.Error.WriteLine(parseError.Message);
         }
 
         return 1;
     }
 
-    private static async Task<long> WriteRecordsAsync(FileInfo file, uint[]? mmsiFilter)
+    private static async Task WriteRecordsAsync(FileInfo file, uint[]? mmsiFilter)
     {
+        Console.Error.Write($"Writing {file.Name}");
+        if(mmsiFilter is { Length: > 0 })
+            Console.Error.Write($" for {string.Join(", ", mmsiFilter) + Environment.NewLine}");
+
         var totalRecords = 0;
         var filteredRecords = 0;
         var headerWritten = false;
@@ -83,6 +94,7 @@ class Program
             if (mmsiFilter is { Length: 0 })
             {
                 await Console.Out.WriteLineAsync(line);
+                ++filteredRecords;
                 continue;
             }
 
@@ -90,16 +102,17 @@ class Program
             if (uint.TryParse(fields[2], out var mmsi) && mmsiFilter.Contains(mmsi))
             {
                 await Console.Out.WriteLineAsync(line);
+                ++filteredRecords;
             }
         }
-        
-        return filteredRecords;
+
+        Console.Error.WriteLine($"Wrote {filteredRecords} of {totalRecords} records.");
     }
 
     private static async IAsyncEnumerable<FileInfo> DownloadAndExtract(string[]? dates)
     {
         if (dates == null || dates.Length == 0) yield break;
-        
+
         var cacheDir = Path.Combine(Path.GetTempPath(), "AisStreamer");
 
         foreach (var date in dates)
@@ -121,15 +134,16 @@ class Program
 
     private static async Task<FileInfo> ExtractCsv(string zipPath, string cacheDir, string csv)
     {
-        await Console.Error.WriteLineAsync($"Extracting {zipPath} to {csv}");
+        Console.Error.WriteLine($"Extracting {zipPath} to {csv}");
         await ZipFile.ExtractToDirectoryAsync(zipPath, cacheDir, true);
 
         File.Delete(zipPath);
 
         if (!File.Exists(csv))
-            throw new Exception($"Expected CSV not found after extraction: {csv}");
-        await Console.Error.WriteLineAsync($"Ready: {csv}");
-        
+            Console.Error.WriteLine($"Expected CSV not found after extraction: {csv}");
+
+        Console.Error.WriteLine($"Ready: {csv}");
+
         return new FileInfo(csv);
     }
 
@@ -137,14 +151,15 @@ class Program
     {
         var url = $"http://aisdata.ais.dk/aisdk-{date}.zip";
         var zipPath = Path.Combine(cacheDir, $"aisdk-{date}.zip");
-        await Console.Error.WriteLineAsync($"Downloading {url} to {zipPath}...");
+
+        Console.Error.WriteLine($"Downloading {url} to {zipPath}...");
 
         using var client = new HttpClient();
         var stream = await client.GetStreamAsync(url);
 
         await using var fileStream = File.Create(zipPath);
         await stream.CopyToAsync(fileStream);
-        
+
         return zipPath;
     }
 }
