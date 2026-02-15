@@ -118,7 +118,7 @@ public static class NmeaEncoder
         var d = Math.Abs(degrees);
         var deg = (int)Math.Truncate(d);
         var minutes = (d - deg) * 60.0;
-        return $"{deg:D2}{minutes:00.0000}";
+        return $"{deg:D2}{minutes.ToString("00.0000", CultureInfo.InvariantCulture)}";
     }
 
     public static string ToGprmc(AisRecord r)
