@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="src\AisLoader\AisLoader.csproj" />
   <Project Path="src\AisStreamer\AisStreamer.csproj" />
+  <Project Path="tests\AisLoader.Tests\AisLoader.Tests.csproj" />
+  <Project Path="tests\AisStreamer.Tests\AisStreamer.Tests.csproj" />
 </Solution>
