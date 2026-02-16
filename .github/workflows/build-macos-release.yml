@@ -42,10 +42,10 @@ jobs:
 
       - name: Code sign binaries
         run: |
-          codesign -s - -f --deep ./publish/macos-x64/AisStreamer
-          codesign -s - -f --deep ./publish/macos-x64/AisLoader
-          codesign -s - -f --deep ./publish/macos-arm64/AisStreamer
-          codesign -s - -f --deep ./publish/macos-arm64/AisLoader
+          codesign -s - -f --deep ./publish/macos-x64/ais-streamer
+          codesign -s - -f --deep ./publish/macos-x64/ais-loader
+          codesign -s - -f --deep ./publish/macos-arm64/ais-streamer
+          codesign -s - -f --deep ./publish/macos-arm64/ais-loader
 
       - name: Create archives
         run: |
