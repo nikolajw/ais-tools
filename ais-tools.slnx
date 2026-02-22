@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/src/" />
+  <Project Path="src/AisSimulator/AisSimulator.csproj" />
+  <Project Path="src/GeoTools/GeoTools.csproj" />
   <Project Path="src\AisLoader\AisLoader.csproj" />
   <Project Path="src\AisStreamer\AisStreamer.csproj" />
   <Project Path="tests\AisLoader.Tests\AisLoader.Tests.csproj" />
