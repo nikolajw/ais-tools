@@ -1,8 +1,9 @@
 using System;
 using System.CommandLine;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
-using System.Xml;
+using GeoTools;
 
 namespace AisSimulator;
 
@@ -87,6 +88,11 @@ class Program
             Console.Error.WriteLine($"Interval: {interval} seconds");
             Console.Error.WriteLine($"Speed multiplier: {speedMultiplier}");
 
+            // Write CSV header
+            Console.WriteLine("Timestamp,Vessel Name,MMSI,Latitude,Longitude,NavigationalStatus,ROT,SOG,COG,Heading");
+
+            await GenerateRealTimePositions(route, mmsi, name, startTime, interval, route.PlannedSpeed, speedMultiplier);
+
             return 0;
         }
         catch (Exception e)
@@ -94,6 +100,67 @@ class Program
             Console.Error.WriteLine($"Error: {e.Message}");
             Console.Error.WriteLine($"Stack trace: {e.StackTrace}");
             return 1;
+        }
+    }
+
+    private static async Task GenerateRealTimePositions(Route route, string mmsi, string name,
+        DateTime currentTime, double interval, double speedKnots, double speedMultiplier)
+    {
+        var legs = route.GetLegs();
+        var currentLegIndex = 0;
+        var distanceAlongLeg = 0.0; // Distance traveled along current leg in nautical miles
+
+        // Real-world delay between positions, adjusted by speed multiplier
+        var delayMilliseconds = (int)(interval * 1000 / speedMultiplier);
+
+        while (currentLegIndex < legs.Count)
+        {
+            var leg = legs[currentLegIndex];
+
+            // Distance to travel in this interval (in nautical miles)
+            var distanceInInterval = (speedKnots * interval) / 3600.0;
+
+            Position nextPosition;
+            double course = leg.Course;
+            double sog = speedKnots;
+
+            // Check if we can complete this interval within the current leg
+            if (distanceAlongLeg + distanceInInterval <= leg.DistanceNauticalMiles)
+            {
+                // Position is within current leg
+                distanceAlongLeg += distanceInInterval;
+                nextPosition = LatLongCalculations.DestinationPoint(
+                    leg.Start,
+                    leg.Course,
+                    distanceAlongLeg);
+            }
+            else
+            {
+                // Next position would exceed current leg
+                // Use the endpoint of current leg and move to next leg
+                nextPosition = leg.End;
+
+                // Calculate remaining distance for next leg
+                var remainingDistance = distanceInInterval - (leg.DistanceNauticalMiles - distanceAlongLeg);
+                currentLegIndex++;
+
+                if (currentLegIndex < legs.Count)
+                {
+                    distanceAlongLeg = remainingDistance;
+                    course = legs[currentLegIndex].Course;
+                }
+                else
+                {
+                    break; // Reached end of route
+                }
+            }
+
+            // Output position in CSV format
+            var timestamp = currentTime.ToString("dd/MM/yyyy HH:mm:ss");
+            Console.WriteLine($"{timestamp},{name},{mmsi},{nextPosition.Latitude},{nextPosition.Longitude},0,0,{sog},{course},0");
+
+            currentTime = currentTime.AddSeconds(interval);
+            await Task.Delay(delayMilliseconds);
         }
     }
 }

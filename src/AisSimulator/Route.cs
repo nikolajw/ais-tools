@@ -9,4 +9,7 @@ public record Route(
     string? End,
     double PlannedSpeed,
     DateTime PlannedDeparture,
-    List<RoutePoint> Waypoints);
+    List<RoutePoint> Waypoints)
+{
+    
+};
