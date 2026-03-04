@@ -24,16 +24,19 @@ jobs:
         run: |
           dotnet restore src/AisStreamer/AisStreamer.csproj
           dotnet restore src/AisLoader/AisLoader.csproj
+          dotnet restore src/AisSimulator/AisSimulator.csproj
 
       - name: Build project
         run: |
           dotnet build src/AisStreamer/AisStreamer.csproj --configuration Release --no-restore
           dotnet build src/AisLoader/AisLoader.csproj --configuration Release --no-restore
+          dotnet build src/AisSimulator/AisSimulator.csproj --configuration Release --no-restore
 
       - name: Publish for Windows
         run: |
           dotnet publish src/AisStreamer/AisStreamer.csproj --configuration Release --runtime win-x64 --self-contained --output ./publish/windows-x64
           dotnet publish src/AisLoader/AisLoader.csproj --configuration Release --runtime win-x64 --self-contained --output ./publish/windows-x64
+          dotnet publish src/AisSimulator/AisSimulator.csproj --configuration Release --runtime win-x64 --self-contained --output ./publish/windows-x64
 
       - name: Create archive
         shell: pwsh
